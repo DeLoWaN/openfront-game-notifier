@@ -254,30 +254,32 @@ page.evaluate(() => {
 # Version Management
 
 Version is centralized in `package.json` and propagates to:
-- `package-lock.json` (via `npm install`)
-- `dist/bundle.user.js` userscript header (via build)
+- `package-lock.json` (via `npm version`)
+- `dist/bundle.user.js` userscript header (via `npm run build:prod`)
 
-## How to Upgrade Version
+## Release after every merged pull request
 
-1. **Update version in package.json**:
+Every pull request merged into `main` ships as its own GitHub release. Run these steps right after the merge, even when the user only says "merged".
+
+1. **Start from the merged `main`.** A worktree cannot check out `main`, so work on a detached head: `git fetch origin && git switch --detach origin/main`.
+2. **Bump the version.** `patch` for a fix, `minor` for a feature, `major` for a breaking change. `gh release create` makes the tag, so npm must not:
    ```bash
-   npm version patch   # 2.5.0 → 2.5.1
-   npm version minor   # 2.5.0 → 2.6.0
-   npm version major   # 2.5.0 → 3.0.0
-   ```
-
-2. **Rebuild the production bundle**:
-   ```bash
+   npm version minor --no-git-tag-version
    npm run build:prod
-   ```
-
-3. **Verify version consistency**:
-   ```bash
    grep '"version"' package.json
    grep '@version' dist/bundle.user.js
    ```
+   Both lines show the new version.
+3. **Commit and push to `main`.** Commit `package.json`, `package-lock.json` and `dist/bundle.user.js` as `chore(release): bump version to X.Y.Z`, then `git push origin HEAD:main`.
+4. **Write the release notes.** Copy the shape of the last release (`gh release view --json name,body`):
+   - Title `vX.Y.Z — <what changed, in a few words>`.
+   - Sections `## Features`, `## Breaking changes`, `## Fixes` (only those that apply), written for players, not developers.
+   - `## Verification`: test count, `tsc` result, and where it was checked live (or "Not checked on openfront.io itself").
+   - Footer: `**Requires OpenFront.io v0.30+.** Full diff: <pull request URL>`.
+5. **Get approval.** The release is public under the user's name: show the exact title and body, and wait for a yes.
+6. **Publish.** `gh release create vX.Y.Z --target "$(git rev-parse HEAD)" --title "<title>" --notes-file <notes file>`. The API rejects a short SHA.
 
-The build reads the version from `package.json` and injects it into the userscript header. Always run `npm run build:prod` after a version bump.
+Done when `gh release list` shows `vX.Y.Z` as Latest, on the bump commit.
 
 ## Agent skills
 

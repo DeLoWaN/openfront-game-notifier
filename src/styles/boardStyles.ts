@@ -204,18 +204,36 @@ export function getBoardStyles(): string {
       line-height: 1.25;
       color: var(--of-hud-text-1);
     }
-    /* The Custom tag leads the chips row, so it takes the line box of a chip. */
+    /* The tags lead the chips row, so they take the line box of a chip. */
     .of-board-tag {
       padding: 1px 5px;
       border-radius: 4px;
-      background: var(--of-hud-accent);
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       line-height: 15.75px;
       white-space: nowrap;
+    }
+    .of-board-tag-custom {
+      background: var(--of-hud-accent);
       color: ${BOARD_COLORS.onAccent};
+    }
+    .of-board-tag-ffa {
+      background: ${BOARD_COLORS.modeFfaBg};
+      box-shadow: inset 0 0 0 1px ${BOARD_COLORS.modeFfaRing};
+      color: ${BOARD_COLORS.modeFfaText};
+    }
+    .of-board-tag-team {
+      background: ${BOARD_COLORS.modeTeamBg};
+      box-shadow: inset 0 0 0 1px ${BOARD_COLORS.modeTeamRing};
+      color: ${BOARD_COLORS.modeTeamText};
+    }
+    .of-board-tag-hvn {
+      background: ${BOARD_COLORS.modeHvnBg};
+      box-shadow: inset 0 0 0 1px ${BOARD_COLORS.modeHvnRing};
+      color: ${BOARD_COLORS.modeHvnText};
+      text-transform: none;
     }
     /* The gauge ends where the Join slot starts, so the fill percentage applies to the shorter track. */
     .of-board-gauge {

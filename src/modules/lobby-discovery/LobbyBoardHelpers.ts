@@ -26,6 +26,9 @@ export const BOARD_QUEUES: ReadonlyArray<{ queue: QueueSource; label: string }> 
   { queue: 'hosted', label: 'Hosted' },
 ];
 
+/** The game mode tag of a card. Humans vs Nations has its own tag, though OpenFront files it under Team. */
+export type BoardModeTag = 'FFA' | 'Team' | 'HvN';
+
 export interface BoardCardModel {
   gameID: string;
   queue: QueueSource;
@@ -44,6 +47,8 @@ export interface BoardCardModel {
   modifiers: BoardModifier[];
   /** True for a Custom Lobby of the Special Queue. Every Hosted Lobby is custom, so a Hosted card has no tag. */
   hasCustomTag: boolean;
+  /** Null in the FFA and Team columns, whose header already names the mode, and for an unknown mode. */
+  modeTag: BoardModeTag | null;
 }
 
 /** Groups the lobbies by Queue and keeps the feed order inside each Queue. */
@@ -115,7 +120,16 @@ export function buildBoardCardModel(
       players !== null && capacity ? Math.min(100, Math.round((players / capacity) * 100)) : 0,
     modifiers: getBoardModifiers(lobby, criteria),
     hasCustomTag: queue === 'special' && lobby.custom === true,
+    modeTag: queue === 'special' || queue === 'hosted' ? getBoardModeTag(lobby) : null,
   };
+}
+
+/** FFA, Team or HvN. Null for a mode that the notifier does not support. */
+export function getBoardModeTag(lobby: Lobby): BoardModeTag | null {
+  const gameMode = getLobbyGameMode(lobby);
+  if (gameMode === 'FFA') return 'FFA';
+  if (gameMode !== 'Team') return null;
+  return getLobbyTeamConfig(lobby) === 'Humans Vs Nations' ? 'HvN' : 'Team';
 }
 
 /** Replaces each hyphen with U+2011, so a line never breaks inside a hyphenated word. For display only. */

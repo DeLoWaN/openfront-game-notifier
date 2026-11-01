@@ -20,6 +20,7 @@ import {
   groupLobbiesByQueue,
   toUnbreakableHyphens,
   type BoardCardModel,
+  type BoardModeTag,
   type CountAndWord,
 } from './LobbyBoardHelpers';
 import {
@@ -71,6 +72,11 @@ const GUTTER_PX = 16;
 /** A lobby at or above this fill percentage shows an orange gauge. */
 const NEARLY_FULL_PERCENT = 80;
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const MODE_TAG_CLASS: Record<BoardModeTag, string> = {
+  FFA: 'of-board-tag of-board-tag-ffa',
+  Team: 'of-board-tag of-board-tag-team',
+  HvN: 'of-board-tag of-board-tag-hvn',
+};
 
 /** The nodes of a card that change with its model. They are built once and then updated in place. */
 interface CardParts {
@@ -556,9 +562,10 @@ export class LobbyBoardView {
     this.setCountAndWord(parts.players, getBoardPlayersParts(model.players, model.capacity));
     this.setText(parts.percent, model.capacity === null ? '' : `· ${model.fillPercent}%`);
 
-    // The Custom tag is the first item of the chips row.
+    // Every Special and Hosted card has a mode tag, so it leads the row and stays in one place.
     this.reconcileChildren(parts.modifiers, 0, [
-      ...(model.hasCustomTag ? [{ className: 'of-board-tag', text: 'Custom' }] : []),
+      ...(model.modeTag ? [{ className: MODE_TAG_CLASS[model.modeTag], text: model.modeTag }] : []),
+      ...(model.hasCustomTag ? [{ className: 'of-board-tag of-board-tag-custom', text: 'Custom' }] : []),
       ...(model.modifiers.length === 0
         ? [{ className: 'of-board-nomods', text: 'No modifiers' }]
         : model.modifiers.map((modifier) => ({

@@ -725,7 +725,7 @@ describe('Lobby Board', () => {
       expect(card.getAttribute('aria-label')).toContain('Bab el-Mandeb Strait');
     });
 
-    it('shows no Queue Position, mode or Hosted label on a card', () => {
+    it('shows no Queue Position, Queue name or Hosted label on a card, and a mode only in the mode tag', () => {
       ui = new LobbyDiscoveryUI();
       ui.receiveLobbyUpdate(
         [ffa('ffa-0'), ffa('ffa-1'), team('team-0'), special('special-0'), hosted('hosted-0'), hosted('hosted-1')] as any,
@@ -733,7 +733,9 @@ describe('Lobby Board', () => {
       );
 
       for (const card of Array.from(document.querySelectorAll<HTMLElement>('.of-board-card'))) {
-        expect(card.textContent).not.toMatch(/Queue|Waiting|Live|Hosted|Special|FFA|Team\b/);
+        const withoutModeTag = card.cloneNode(true) as HTMLElement;
+        withoutModeTag.querySelector('.of-board-tag:not(.of-board-tag-custom)')?.remove();
+        expect(withoutModeTag.textContent).not.toMatch(/Queue|Waiting|Live|Hosted|Special|FFA|Team\b/);
         expect(card.querySelector('.of-board-countdown')).toBeNull();
       }
     });
@@ -877,7 +879,75 @@ describe('Lobby Board', () => {
       expect(modifiers(cardIn('ffa', 0))).toEqual([['Random Spawn', 'required']]);
     });
 
-    it('tags a Custom Lobby of the Special Queue "Custom" as the first item of its Modifier chips row', () => {
+    it('tags each Special and Hosted card with its game mode: FFA, Team or HvN', () => {
+      ui = new LobbyDiscoveryUI();
+      ui.receiveLobbyUpdate(
+        [
+          ffa('ffa-0'),
+          team('team-0'),
+          special('special-0'),
+          special('special-1', {}, { gameMode: 'Team', playerTeams: 'Duos' }),
+          special('special-2', {}, { gameMode: 'Team', playerTeams: 'Humans Vs Nations' }),
+          special('special-3', {}, { gameMode: 'Unknown mode' }),
+          hosted('hosted-0'),
+          hosted('hosted-1', { gameConfig: { gameMode: 'Team', gameMap: 'Asia', playerTeams: 3, maxPlayers: 30 } }),
+        ] as any,
+        NOW
+      );
+
+      const modeTags = (card: HTMLElement | null) =>
+        Array.from(card?.querySelectorAll('.of-board-tag:not(.of-board-tag-custom)') ?? []).map(
+          (el) => `${el.className}:${el.textContent}`
+        );
+      expect(modeTags(cardIn('special', 0))).toEqual(['of-board-tag of-board-tag-ffa:FFA']);
+      expect(modeTags(cardIn('special', 1))).toEqual(['of-board-tag of-board-tag-team:Team']);
+      expect(modeTags(cardIn('special', 2))).toEqual(['of-board-tag of-board-tag-hvn:HvN']);
+      expect(modeTags(cardIn('hosted', 0))).toEqual(['of-board-tag of-board-tag-ffa:FFA']);
+      expect(modeTags(cardIn('hosted', 1))).toEqual(['of-board-tag of-board-tag-team:Team']);
+      // The column already names the mode of an FFA or Team card.
+      expect(modeTags(cardIn('ffa', 0))).toEqual([]);
+      expect(modeTags(cardIn('team', 0))).toEqual([]);
+      // A mode that the notifier does not support has no tag.
+      expect(modeTags(cardIn('special', 3))).toEqual([]);
+
+      const chipsRow = cardIn('special', 0)!.querySelector('.of-board-mods')!;
+      expect(chipsRow.firstElementChild?.textContent).toBe('FFA');
+    });
+
+    it('changes the mode tag in place when the mode of a lobby changes', () => {
+      ui = new LobbyDiscoveryUI();
+      ui.receiveLobbyUpdate([ffa('ffa-0'), special('special-0')] as any, NOW);
+      const tag = cardIn('special', 0)!.querySelector('.of-board-mods')!.firstElementChild!;
+      expect(`${tag.className}:${tag.textContent}`).toBe('of-board-tag of-board-tag-ffa:FFA');
+
+      ui.receiveLobbyUpdate(
+        [ffa('ffa-0'), special('special-0', {}, { gameMode: 'Team', playerTeams: 'Humans Vs Nations' })] as any,
+        NOW
+      );
+      const row = cardIn('special', 0)!.querySelector('.of-board-mods')!;
+      expect(row.firstElementChild).toBe(tag);
+      expect(`${tag.className}:${tag.textContent}`).toBe('of-board-tag of-board-tag-hvn:HvN');
+    });
+
+    it('shows no mode tag on a Hosted Lobby without a configuration', () => {
+      ui = new LobbyDiscoveryUI();
+      ui.receiveLobbyUpdate([ffa('ffa-0'), hosted('hosted-0', { gameConfig: undefined })] as any, NOW);
+
+      expect(cardIn('hosted', 0)!.querySelector('.of-board-tag')).toBeNull();
+    });
+
+    it('puts the mode tag before the Custom tag and the Modifier chips', () => {
+      ui = new LobbyDiscoveryUI();
+      ui.receiveLobbyUpdate(
+        [ffa('ffa-0'), special('special-0', { custom: true }, { gameMapSize: 'Compact' })] as any,
+        NOW
+      );
+
+      const chipsRow = cardIn('special', 0)!.querySelector('.of-board-mods')!;
+      expect(Array.from(chipsRow.children).map((el) => el.textContent)).toEqual(['FFA', 'Custom', 'Compact']);
+    });
+
+    it('tags a Custom Lobby of the Special Queue "Custom" in its Modifier chips row', () => {
       ui = new LobbyDiscoveryUI();
       ui.receiveLobbyUpdate(
         [
@@ -890,13 +960,16 @@ describe('Lobby Board', () => {
       );
 
       const tags = (card: HTMLElement | null) =>
-        Array.from(card?.querySelectorAll('.of-board-tag') ?? []).map((el) => el.textContent);
+        Array.from(card?.querySelectorAll('.of-board-tag-custom') ?? []).map((el) => el.textContent);
       expect(tags(cardIn('ffa', 0))).toEqual([]);
       expect(tags(cardIn('special', 0))).toEqual([]);
       expect(tags(cardIn('special', 1))).toEqual(['Custom']);
       const chipsRow = cardIn('special', 1)!.querySelector('.of-board-mods')!;
-      expect(Array.from(chipsRow.children).map((el) => el.className)).toEqual(['of-board-tag', 'of-board-mod']);
-      expect(chipsRow.firstElementChild?.textContent).toBe('Custom');
+      expect(Array.from(chipsRow.children).map((el) => el.className)).toEqual([
+        'of-board-tag of-board-tag-ffa',
+        'of-board-tag of-board-tag-custom',
+        'of-board-mod',
+      ]);
       expect(cardIn('special', 1)!.querySelector('.of-board-formatline .of-board-tag')).toBeNull();
       // Every Hosted Lobby is custom, so the tag tells nothing there.
       expect(tags(cardIn('hosted', 0))).toEqual([]);
@@ -918,16 +991,29 @@ describe('Lobby Board', () => {
       const chipsRow = cardIn('special', 0)!.querySelector('.of-board-mods')!;
       const rowTexts = () => Array.from(chipsRow.children).map((el) => `${el.className}:${el.textContent}`);
       const nodesBefore = Array.from(chipsRow.children);
-      expect(rowTexts()).toEqual(['of-board-mod:Compact', 'of-board-mod:Random Spawn']);
+      expect(rowTexts()).toEqual([
+        'of-board-tag of-board-tag-ffa:FFA',
+        'of-board-mod:Compact',
+        'of-board-mod:Random Spawn',
+      ]);
 
       ui.receiveLobbyUpdate(lobbies(true), NOW);
       expect(cardIn('special', 0)!.querySelector('.of-board-mods')).toBe(chipsRow);
-      expect(rowTexts()).toEqual(['of-board-tag:Custom', 'of-board-mod:Compact', 'of-board-mod:Random Spawn']);
+      expect(rowTexts()).toEqual([
+        'of-board-tag of-board-tag-ffa:FFA',
+        'of-board-tag of-board-tag-custom:Custom',
+        'of-board-mod:Compact',
+        'of-board-mod:Random Spawn',
+      ]);
       // The existing chip nodes are reused, so only one node is new.
       expect(nodesBefore.every((node) => node.isConnected)).toBe(true);
 
       ui.receiveLobbyUpdate(lobbies(false), NOW);
-      expect(rowTexts()).toEqual(['of-board-mod:Compact', 'of-board-mod:Random Spawn']);
+      expect(rowTexts()).toEqual([
+        'of-board-tag of-board-tag-ffa:FFA',
+        'of-board-mod:Compact',
+        'of-board-mod:Random Spawn',
+      ]);
     });
 
     it('shows a countdown on a Hosted Lobby that has autoStartAt', () => {

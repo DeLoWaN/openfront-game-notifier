@@ -55,6 +55,16 @@ export const BOARD_COLORS = {
   onAccent: '#0d0a14',
   /** The text on the "New" badge. */
   onNew: '#0a0610',
+  /** The tinted mode tags. Orange means a match and blue is the Custom tag, so the modes use other hues. */
+  modeFfaBg: 'rgba(95, 191, 154, 0.18)',
+  modeFfaRing: 'rgba(95, 191, 154, 0.45)',
+  modeFfaText: '#7fd6b4',
+  modeTeamBg: 'rgba(180, 142, 224, 0.18)',
+  modeTeamRing: 'rgba(180, 142, 224, 0.45)',
+  modeTeamText: '#c9aef0',
+  modeHvnBg: 'rgba(224, 122, 158, 0.18)',
+  modeHvnRing: 'rgba(224, 122, 158, 0.45)',
+  modeHvnText: '#f0a8c2',
   chip: 'rgba(255, 255, 255, 0.08)',
   blockedBg: 'rgba(200, 70, 50, 0.25)',
   blockedText: '#f2c4bb',

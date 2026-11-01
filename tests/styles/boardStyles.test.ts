@@ -320,6 +320,48 @@ describe('Lobby Board styles', () => {
     expect(tag).toContain('border-radius: 4px;');
   });
 
+  it('gives the Custom tag the solid accent blue', () => {
+    const custom = ruleBody('.of-board-tag-custom');
+    expect(custom).toContain('background: var(--of-hud-accent);');
+    expect(custom).toContain(`color: ${BOARD_COLORS.onAccent};`);
+  });
+
+  it('gives FFA, Team and HvN a tinted tag whose hue stays away from the match orange and the Custom blue', () => {
+    /** The hue of a "#rrggbb" colour, in degrees. */
+    const hueOf = (hex: string): number => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+      const max = Math.max(r, g, b);
+      const delta = max - Math.min(r, g, b);
+      if (delta === 0) return 0;
+      const sector = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+      return (sector * 60 + 360) % 360;
+    };
+    const hueGap = (a: number, b: number): number => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+
+    const modes = [
+      ['ffa', BOARD_COLORS.modeFfaText],
+      ['team', BOARD_COLORS.modeTeamText],
+      ['hvn', BOARD_COLORS.modeHvnText],
+    ] as const;
+    for (const [mode, text] of modes) {
+      const body = ruleBody(`.of-board-tag-${mode}`);
+      expect(body).toContain(`color: ${text};`);
+      expect(body).toMatch(/background: rgba\(/);
+      expect(body).toMatch(/box-shadow: inset 0 0 0 1px rgba\(/);
+      expect(hueGap(hueOf(text), hueOf(BOARD_COLORS.live))).toBeGreaterThan(30);
+      expect(hueGap(hueOf(text), hueOf(COLORS.accent))).toBeGreaterThan(30);
+    }
+    const [ffaHue, teamHue, hvnHue] = modes.map(([, text]) => hueOf(text)) as [number, number, number];
+    expect(hueGap(ffaHue, teamHue)).toBeGreaterThan(30);
+    expect(hueGap(teamHue, hvnHue)).toBeGreaterThan(30);
+    expect(hueGap(ffaHue, hvnHue)).toBeGreaterThan(30);
+  });
+
+  it('keeps the mixed case of the HvN tag', () => {
+    expect(ruleBody('.of-board-tag')).toContain('text-transform: uppercase;');
+    expect(ruleBody('.of-board-tag-hvn')).toContain('text-transform: none;');
+  });
+
   it('shows the thumbnail without a bottom gradient', () => {
     const css = getBoardStyles();
     expect(css).not.toContain('of-board-thumb::after');

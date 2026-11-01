@@ -28,6 +28,10 @@ _Avoid_: Listed lobby, subscriber lobby
 A private game that a host paid to place in the Special Queue, with a configuration they chose.
 _Avoid_: Paid lobby
 
+**Humans vs Nations**:
+A game where all human players form one side against the countries that the game AI plays. OpenFront files it under the Team mode.
+_Avoid_: Humans Vs Nations
+
 **See All View**:
 The OpenFront page that lists every lobby of every Queue, opened from the "See all" button on the home page.
 _Avoid_: Detailed view, lobby browser
